@@ -81,7 +81,7 @@ print("=" * 100)
 print(results[["folder", "file", "similarity", "cluster_id"]])
 
 
-#------------------FOR DISPLAYING IMAGES USING MATPLOTLIb-----------------------
+#------------------FOR DISPLAYING IMAGES-----------------------
 
 
 image_paths = []
