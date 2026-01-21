@@ -32,4 +32,3 @@ def get_image_embedding(image_path):
         embedding /= embedding.norm(dim=-1, keepdim=True)
 
     return embedding.squeeze(0).cpu()  # shape: (dim,)
-

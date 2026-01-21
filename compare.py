@@ -1,80 +1,95 @@
 from vector import get_image_embedding
 import pandas as pd
 import numpy as np
-from readcsv import read_csv_file
 from display import show_images
 import os
+import joblib
 
 # =========================
 # CONFIG
 # =========================
-IMAGE_ROOT = "E:/IMAGES"
-CSV_PATH = "E:/projects/near-duplicate-detection/clip_embeddings.csv"
+PCA_MODEL = "E:/models/pca.joblib"
+CLUSTERED_CSV = "E:/projects/near-duplicate-detection/clip_embeddings_pca_clusters.csv"
+
 TARGET_IMAGE = "E:/IMAGES/0/0/0/0000059611c7d079.jpg"
 TOP_K = 5
+
+IMAGE_BASE = "E:/IMAGES/0/0"
+
+# =========================
+# LOAD PCA
+# =========================
+pca = joblib.load(PCA_MODEL)
 
 # =========================
 # TARGET EMBEDDING
 # =========================
 target = get_image_embedding(TARGET_IMAGE)
-
-# Force CPU + NumPy
-if hasattr(target, "detach"):
-    target = target.detach().cpu().numpy()
-
-target = np.asarray(target, dtype=np.float32).reshape(-1)
+target = np.asarray(target, dtype=np.float32)
 
 t_norm = np.linalg.norm(target)
 if t_norm == 0:
     raise ValueError("Target embedding norm is ZERO")
+
 target /= t_norm
 
-# =========================
-# LOAD DATASET EMBEDDINGS
-# =========================
-dataset = read_csv_file(CSV_PATH)
-
-embed_cols = [c for c in dataset.columns if c.startswith("dim_")]
-
-embeddings = (
-    dataset[embed_cols]
-    .apply(pd.to_numeric, errors="coerce")
-    .fillna(0.0)
-    .to_numpy(dtype=np.float32)
-)
+# PCA projection
+target_pca = pca.transform(target.reshape(1, -1))[0]
 
 # =========================
-# NORMALIZE DATASET (SAFE)
+# LOAD PCA + CLUSTER DATASET
 # =========================
-norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-mask = norms.squeeze() > 0
+df = pd.read_csv(CLUSTERED_CSV)
 
-embeddings = embeddings[mask]
-dataset = dataset.iloc[mask]
-embeddings /= norms[mask]
+pca_cols = [c for c in df.columns if c.startswith("pca_")]
+X_pca = df[pca_cols].to_numpy(dtype=np.float32)
 
 # =========================
-# COSINE SIMILARITY
+# FIND NEAREST CLUSTER
 # =========================
-scores = embeddings @ target
+# cosine similarity in PCA space
+scores_all = X_pca @ target_pca
+best_idx = np.argmax(scores_all)
+
+target_cluster = df.iloc[best_idx]["cluster_id"]
+print("Assigned cluster:", target_cluster)
+
+# =========================
+# FILTER SEARCH SPACE
+# =========================
+if target_cluster != -1:
+    mask = df["cluster_id"] == target_cluster
+    df_search = df[mask].reset_index(drop=True)
+    X_search = X_pca[mask]
+    print(f"Searching inside cluster ({len(df_search)} images)")
+else:
+    df_search = df
+    X_search = X_pca
+    print("Target is noise → searching entire dataset")
+
+# =========================
+# COSINE SIMILARITY (FINAL)
+# =========================
+scores = X_search @ target_pca
 
 top_idx = np.argsort(scores)[-TOP_K:][::-1]
-results = dataset.iloc[top_idx].copy()
+results = df_search.iloc[top_idx].copy()
 results["similarity"] = scores[top_idx]
 
 print("\nTop similar images:")
 print("=" * 100)
-print(results[["folder", "file", "similarity"]])
+print(results[["folder", "file", "similarity", "cluster_id"]])
 
-# =========================
-# DISPLAY IMAGES (SAFE)
-# =========================
+
+#------------------FOR DISPLAYING IMAGES USING MATPLOTLIb-----------------------
+
+
 image_paths = []
 similarities = []
-basepth = "E:/IMAGES/0/0"
+
 for _, row in results.iterrows():
     img_path = os.path.join(
-        basepth,
+        IMAGE_BASE,
         str(row["folder"]),
         str(row["file"])
     )
@@ -85,8 +100,4 @@ for _, row in results.iterrows():
     else:
         print("Missing file:", img_path)
 
-try:
-    show_images(image_paths, similarities, cols=3)
-except Exception as e:
-    print("Display error:", e)
-    print("Paths:", image_paths)
+show_images(image_paths, similarities, cols=3)
