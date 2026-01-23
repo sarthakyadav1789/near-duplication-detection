@@ -5,9 +5,7 @@ from display import show_images
 import os
 import joblib
 
-# =========================
-# CONFIG
-# =========================
+
 PCA_MODEL = "E:/models/pca.joblib"
 CLUSTERED_CSV = "E:/projects/near-duplicate-detection/clip_embeddings_pca_clusters.csv"
 
@@ -16,14 +14,11 @@ TOP_K = 5
 
 IMAGE_BASE = "E:/IMAGES/0/0"
 
-# =========================
-# LOAD PCA
-# =========================
 pca = joblib.load(PCA_MODEL)
 
-# =========================
-# TARGET EMBEDDING
-# =========================
+
+# generating embedding
+
 target = get_image_embedding(TARGET_IMAGE)
 target = np.asarray(target, dtype=np.float32)
 
@@ -36,27 +31,22 @@ target /= t_norm
 # PCA projection
 target_pca = pca.transform(target.reshape(1, -1))[0]
 
-# =========================
-# LOAD PCA + CLUSTER DATASET
-# =========================
+
 df = pd.read_csv(CLUSTERED_CSV)
 
 pca_cols = [c for c in df.columns if c.startswith("pca_")]
 X_pca = df[pca_cols].to_numpy(dtype=np.float32)
 
-# =========================
-# FIND NEAREST CLUSTER
-# =========================
-# cosine similarity in PCA space
+#Finding Nearest Cluster
+
 scores_all = X_pca @ target_pca
 best_idx = np.argmax(scores_all)
 
 target_cluster = df.iloc[best_idx]["cluster_id"]
 print("Assigned cluster:", target_cluster)
 
-# =========================
 # FILTER SEARCH SPACE
-# =========================
+
 if target_cluster != -1:
     mask = df["cluster_id"] == target_cluster
     df_search = df[mask].reset_index(drop=True)
@@ -67,9 +57,7 @@ else:
     X_search = X_pca
     print("Target is noise → searching entire dataset")
 
-# =========================
-# COSINE SIMILARITY (FINAL)
-# =========================
+#Calculating Cosine similarity
 scores = X_search @ target_pca
 
 top_idx = np.argsort(scores)[-TOP_K:][::-1]
@@ -81,7 +69,7 @@ print("=" * 100)
 print(results[["folder", "file", "similarity", "cluster_id"]])
 
 
-#------------------FOR DISPLAYING IMAGES USING MATPLOTLIb-----------------------
+#Displaying images using matplotlib
 
 
 image_paths = []
