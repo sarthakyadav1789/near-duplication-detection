@@ -7,11 +7,11 @@ def show_images(image_paths, similarities=None, cols=3):
         print("No images provided")
         return
 
-    # Validate inputs
+    
     if similarities is not None and len(similarities) != len(image_paths):
         raise ValueError("Length of similarities must match image_paths")
 
-    # Filter valid paths (keep alignment)
+    # Filtering valid paths
     valid_paths = []
     valid_scores = []
 
@@ -46,7 +46,7 @@ def show_images(image_paths, similarities=None, cols=3):
             axes[i].imshow(img)
             axes[i].axis("off")
 
-            # Title with similarity
+           
             if similarities is not None:
                 title = f"{os.path.basename(img_path)}\nSim: {valid_scores[i]:.4f}"
             else:
@@ -58,7 +58,7 @@ def show_images(image_paths, similarities=None, cols=3):
             print(f"⚠️ Error loading {img_path}: {e}")
             axes[i].axis("off")
 
-    # Hide unused axes
+    
     for j in range(i + 1, len(axes)):
         axes[j].axis("off")
 

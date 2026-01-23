@@ -5,16 +5,16 @@ from PIL import Image
 from tqdm import tqdm
 import pandas as pd
 
-# ================= CONFIG =================
-DATASET_ROOT = "E:/IMAGES/0/0"             # Root folder containing 0,1,...,8
-OUTPUT_CSV = "clip_embeddings.csv"      # Output CSV file
+
+DATASET_ROOT = "E:/IMAGES/0/0"             
+OUTPUT_CSV = "clip_embeddings.csv"      
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-MODEL_PATH = "E:/models/open_clip_model.safetensors"  # Your downloaded model
-MODEL_NAME = "ViT-B-32"  # Use a built-in OpenCLIP model name
-BATCH_SIZE = 32           # Adjust for your GPU/CPU memory
+MODEL_PATH = "E:/models/open_clip_model.safetensors"  
+MODEL_NAME = "ViT-B-32"  
+BATCH_SIZE = 32           
 
-# ================= LOAD MODEL =================
+# Loading Model
 print("Loading OpenCLIP model...")
 model, _, preprocess = open_clip.create_model_and_transforms(
     MODEL_NAME, pretrained=MODEL_PATH
@@ -22,7 +22,7 @@ model, _, preprocess = open_clip.create_model_and_transforms(
 model = model.to(DEVICE)
 model.eval()
 
-# ================= COLLECT IMAGE PATHS =================
+#Storing image paths
 image_paths = []
 for folder_name in sorted(os.listdir(DATASET_ROOT)):
     folder_path = os.path.join(DATASET_ROOT, folder_name)
@@ -37,13 +37,13 @@ for folder_name in sorted(os.listdir(DATASET_ROOT)):
 
 print(f"Found {len(image_paths)} images.")
 
-# ================= GENERATE EMBEDDINGS =================
+#  Generating Image Embedding
 embeddings_list = []
 
 for i in tqdm(range(0, len(image_paths), BATCH_SIZE), desc="Processing Batches"):
     batch = image_paths[i:i+BATCH_SIZE]
     
-    # Load and preprocess images
+    # Loading and preprocessing images
     imgs = []
     for img_info in batch:
         try:
@@ -57,14 +57,14 @@ for i in tqdm(range(0, len(image_paths), BATCH_SIZE), desc="Processing Batches")
 
     imgs_tensor = torch.stack(imgs).to(DEVICE)
 
-    # Encode images
+    # Encoding images
     with torch.no_grad():
         batch_embeddings = model.encode_image(imgs_tensor)
-        batch_embeddings /= batch_embeddings.norm(dim=-1, keepdim=True)  # normalize
+        batch_embeddings /= batch_embeddings.norm(dim=-1, keepdim=True) 
 
     batch_embeddings = batch_embeddings.cpu().numpy()
 
-    # Save embeddings in dictionary format
+   
     for j, emb in enumerate(batch_embeddings):
         emb_dict = {
             "folder": batch[j]["folder"],
@@ -73,7 +73,7 @@ for i in tqdm(range(0, len(image_paths), BATCH_SIZE), desc="Processing Batches")
         emb_dict.update({f"dim_{k}": float(emb[k]) for k in range(emb.shape[0])})
         embeddings_list.append(emb_dict)
 
-# ================= SAVE TO CSV =================
+# Saving to csv
 df = pd.DataFrame(embeddings_list)
 df.to_csv(OUTPUT_CSV, index=False)
 print(f"Saved embeddings to {OUTPUT_CSV}")

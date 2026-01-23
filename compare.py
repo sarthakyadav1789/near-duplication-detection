@@ -5,12 +5,11 @@ from display import show_images
 import os
 import joblib
 
-# =========================
-# CONFIG
-# =========================
+
 PCA_MODEL = "E:/models/pca.joblib"
 CLUSTERED_CSV = "E:/projects/near-duplicate-detection/clip_embeddings_pca_clusters.csv"
 IMAGE_BASE = "E:/IMAGES/0/0"
+
 
 TOP_K = 5
 
@@ -18,6 +17,7 @@ TOP_K = 5
 def run(target_image_path, candidate_filenames):
     """
     Run CLIP + PCA + cluster-based comparison on candidate images.
+
 
     Parameters:
     - target_image_path (str)

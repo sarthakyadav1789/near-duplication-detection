@@ -3,16 +3,10 @@ import numpy as np
 import joblib
 import os
 
-# =========================
-# CONFIG
-# =========================
-RAW_CSV = "E:/projects/near-duplicate-detection/clip_embeddings.csv"          # input (512-D)
-PCA_MODEL = "E:/models/pca.joblib"               # trained PCA
-OUT_CSV = "data/clip_embeddings_pca.csv"      # output (128-D)
+RAW_CSV = "E:/projects/near-duplicate-detection/clip_embeddings.csv"          
+PCA_MODEL = "E:/models/pca.joblib"               
+OUT_CSV = "data/clip_embeddings_pca.csv"     
 
-# =========================
-# LOAD DATA
-# =========================
 print("Loading raw embeddings CSV...")
 df = pd.read_csv(RAW_CSV)
 
@@ -22,9 +16,7 @@ if not embed_cols:
 
 X = df[embed_cols].to_numpy(dtype=np.float32)
 
-# =========================
-# NORMALIZE (CRITICAL)
-# =========================
+# Normalization
 norms = np.linalg.norm(X, axis=1, keepdims=True)
 mask = norms.squeeze() > 0
 
@@ -32,29 +24,21 @@ df = df.iloc[mask].reset_index(drop=True)
 X = X[mask]
 X /= norms[mask]
 
-# =========================
-# LOAD PCA
-# =========================
+
 print("Loading PCA model...")
 pca = joblib.load(PCA_MODEL)
 
-# =========================
-# APPLY PCA
-# =========================
 print("Applying PCA...")
 X_pca = pca.transform(X)
 
-# =========================
-# BUILD OUTPUT CSV
-# =========================
+
 df_pca = df[["folder", "file"]].copy()
 
 for i in range(X_pca.shape[1]):
     df_pca[f"pca_{i}"] = X_pca[:, i]
 
-# =========================
-# SAVE
-# =========================
+# Saving
+
 os.makedirs(os.path.dirname(OUT_CSV), exist_ok=True)
 df_pca.to_csv(OUT_CSV, index=False)
 
