@@ -73,7 +73,7 @@ for i in tqdm(range(0, len(image_paths), BATCH_SIZE), desc="Processing Batches")
         emb_dict.update({f"dim_{k}": float(emb[k]) for k in range(emb.shape[0])})
         embeddings_list.append(emb_dict)
 
-# ================= SAVE TO CSV =================
+# Saving to csv
 df = pd.DataFrame(embeddings_list)
 df.to_csv(OUTPUT_CSV, index=False)
 print(f"Saved embeddings to {OUTPUT_CSV}")
