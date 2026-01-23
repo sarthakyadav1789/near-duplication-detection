@@ -4,7 +4,7 @@ from PIL import Image
 import tempfile
 import os
 import math
-import main
+import main_code
 from compare import run as clip_run  
 
 
